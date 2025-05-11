@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_secure_storage: ^9.2.4
+  local_auth: ^2.3.0
   shared_preferences: ^2.5.3
   webview_flutter: ^4.11.0
 

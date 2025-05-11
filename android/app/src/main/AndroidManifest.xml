@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
-        android:label="traccar_manager"
+        android:label="Traccar Manager"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
