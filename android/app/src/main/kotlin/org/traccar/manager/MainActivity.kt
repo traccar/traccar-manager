@@ -1,4 +1,4 @@
-package com.example.traccar_manager
+package org.traccar.manager
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
