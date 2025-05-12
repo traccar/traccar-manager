@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:traccar_manager/main.dart';
 import 'package:traccar_manager/token_store.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,6 +14,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  static final urlKey = 'url';
   bool _initialized = false;
   late final SharedPreferences _preferences;
   late final WebViewController _controller;
@@ -29,7 +31,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _initWebView() async {
     _preferences = await SharedPreferences.getInstance();
 
-    String url = _preferences.getString('url') ?? 'https://demo.traccar.org'; //'http://localhost:3000';
+    String url = _preferences.getString(urlKey) ?? 'https://demo.traccar.org'; //'http://localhost:3000';
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       final eventId = initialMessage.data['eventId'];
@@ -41,6 +43,20 @@ class _MainScreenState extends State<MainScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel('appInterface', onMessageReceived: _handleWebMessage)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onNavigationRequest: (NavigationRequest request) async {
+            final serverUrl = _preferences.getString(urlKey);
+            if (serverUrl != null && !request.url.startsWith(serverUrl)) {
+              if (await canLaunchUrl(Uri.parse(request.url))) {
+                await launchUrl(Uri.parse(request.url));
+              }
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
       ..loadRequest(Uri.parse(url));
 
     setState(() {
@@ -62,7 +78,7 @@ class _MainScreenState extends State<MainScreen> {
       }
     });
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      final url = _preferences.getString('url');
+      final url = _preferences.getString(urlKey);
       final eventId = message.data['eventId'];
       if (url != null && eventId != null) {
         _controller.loadRequest(Uri.parse('$url?eventId=$eventId'));
@@ -90,7 +106,7 @@ class _MainScreenState extends State<MainScreen> {
         await _loginTokenStore.delete();
       case 'server':
         final url = parts[1];
-        await _preferences.setString('url', url);
+        await _preferences.setString(urlKey, url);
         _controller.loadRequest(Uri.parse(url));
     }
   }
