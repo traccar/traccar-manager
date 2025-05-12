@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:traccar_manager/main.dart';
 import 'package:traccar_manager/token_store.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,11 +56,9 @@ class _MainScreenState extends State<MainScreen> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(notification.body ?? 'Unknown')),
-          );
-        });
+        scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(notification.body ?? 'Unknown')),
+        );
       }
     });
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
