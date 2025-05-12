@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:traccar_manager/token_store.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -14,21 +15,31 @@ class _MainScreenState extends State<MainScreen> {
   bool _initialized = false;
   late final SharedPreferences _preferences;
   late final WebViewController _controller;
-  final _tokenStore = TokenStore();
+  final _loginTokenStore = TokenStore();
+  final _messaging = FirebaseMessaging.instance;
 
   @override
   void initState() {
     super.initState();
     _initWebView();
+    _initNotifications();
   }
 
   Future<void> _initWebView() async {
     _preferences = await SharedPreferences.getInstance();
 
-    final url = _preferences.getString('url') ?? 'https://demo.traccar.org'; //'http://localhost:3000';
+    String url = _preferences.getString('url') ?? 'https://demo.traccar.org'; //'http://localhost:3000';
+    final initialMessage = await _messaging.getInitialMessage();
+    if (initialMessage != null) {
+      final eventId = initialMessage.data['eventId'];
+      if (eventId != null) {
+        url = '$url?eventId=$eventId';
+      }
+    }
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..addJavaScriptChannel('appInterface', onMessageReceived: _handleMessage)
+      ..addJavaScriptChannel('appInterface', onMessageReceived: _handleWebMessage)
       ..loadRequest(Uri.parse(url));
 
     setState(() {
@@ -36,21 +47,48 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  void _handleMessage(JavaScriptMessage interfaceMessage) async {
+  Future<void> _initNotifications() async {
+    await _messaging.requestPermission();
+    _messaging.onTokenRefresh.listen((newToken) {
+      _controller.runJavaScript("updateNotificationToken && updateNotificationToken('$newToken')");
+    });
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      final notification = message.notification;
+      if (notification != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(notification.body ?? 'Unknown')),
+          );
+        });
+      }
+    });
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      final url = _preferences.getString('url');
+      final eventId = message.data['eventId'];
+      if (url != null && eventId != null) {
+        _controller.loadRequest(Uri.parse('$url?eventId=$eventId'));
+      }
+    });
+  }
+
+  void _handleWebMessage(JavaScriptMessage interfaceMessage) async {
     final List<String> parts = interfaceMessage.message.split('|');
     switch (parts[0]) {
       case 'login':
         if (parts.length > 1) {
-          await _tokenStore.save(parts[1]);
+          await _loginTokenStore.save(parts[1]);
         }
-        // TODO register notification token
+        final notificationToken = await _messaging.getToken();
+        if (notificationToken != null) {
+          _controller.runJavaScript("updateNotificationToken && updateNotificationToken('$notificationToken')");
+        }
       case 'authentication':
-        final token = await _tokenStore.read();
-        if (token != null) {
-          _controller.runJavaScript("handleLoginToken && handleLoginToken('$token')");
+        final loginToken = await _loginTokenStore.read();
+        if (loginToken != null) {
+          _controller.runJavaScript("handleLoginToken && handleLoginToken('$loginToken')");
         }
       case 'logout':
-        await _tokenStore.delete();
+        await _loginTokenStore.delete();
       case 'server':
         final url = parts[1];
         await _preferences.setString('url', url);
