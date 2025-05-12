@@ -116,9 +116,23 @@ class _MainScreenState extends State<MainScreen> {
     if (!_initialized) {
       return const Center(child: CircularProgressIndicator());
     }
-    return Scaffold(
-      body: SafeArea(
-        child: WebViewWidget(controller: _controller),
+    final navigator = Navigator.of(context);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _controller.canGoBack().then((canGoBack) {
+          if (canGoBack) {
+            _controller.goBack();
+          } else if (mounted) {
+            navigator.pop();
+          }
+        });
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: WebViewWidget(controller: _controller),
+        ),
       ),
     );
   }
