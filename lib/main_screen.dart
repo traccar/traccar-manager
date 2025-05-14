@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:traccar_manager/main.dart';
 import 'package:traccar_manager/token_store.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -14,7 +15,8 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  static final urlKey = 'url';
+  static const _urlKey = 'url';
+
   bool _initialized = false;
   late final SharedPreferences _preferences;
   late final WebViewController _controller;
@@ -28,10 +30,14 @@ class _MainScreenState extends State<MainScreen> {
     _initNotifications();
   }
 
+  String _getUrl() {
+    return _preferences.getString(_urlKey) ?? 'https://demo.traccar.org'; //'http://localhost:3000';
+  }
+
   Future<void> _initWebView() async {
     _preferences = await SharedPreferences.getInstance();
 
-    String url = _preferences.getString(urlKey) ?? 'https://demo.traccar.org'; //'http://localhost:3000';
+    String url = _getUrl();
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       final eventId = initialMessage.data['eventId'];
@@ -46,8 +52,7 @@ class _MainScreenState extends State<MainScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) async {
-            final serverUrl = _preferences.getString(urlKey);
-            if (serverUrl != null && !request.url.startsWith(serverUrl)) {
+            if (!request.url.startsWith(_getUrl())) {
               if (await canLaunchUrl(Uri.parse(request.url))) {
                 await launchUrl(Uri.parse(request.url));
               }
@@ -78,10 +83,9 @@ class _MainScreenState extends State<MainScreen> {
       }
     });
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      final url = _preferences.getString(urlKey);
       final eventId = message.data['eventId'];
-      if (url != null && eventId != null) {
-        _controller.loadRequest(Uri.parse('$url?eventId=$eventId'));
+      if (eventId != null) {
+        _controller.loadRequest(Uri.parse('${_getUrl()}?eventId=$eventId'));
       }
     });
   }
@@ -106,9 +110,17 @@ class _MainScreenState extends State<MainScreen> {
         await _loginTokenStore.delete();
       case 'server':
         final url = parts[1];
-        await _preferences.setString(urlKey, url);
+        await _preferences.setString(_urlKey, url);
         _controller.loadRequest(Uri.parse(url));
     }
+  }
+
+  bool _isRootOrLogin(String baseUrl, String? currentUrl) {
+    if (currentUrl == null) return false;
+    final baseUri = Uri.parse(baseUrl);
+    final currentUri = Uri.parse(currentUrl);
+    if (baseUri.origin != currentUri.origin) return false;
+    return currentUri.path == '/' || currentUri.path == '/login';
   }
 
   @override
@@ -116,17 +128,18 @@ class _MainScreenState extends State<MainScreen> {
     if (!_initialized) {
       return const Center(child: CircularProgressIndicator());
     }
-    final navigator = Navigator.of(context);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _controller.canGoBack().then((canGoBack) {
-          if (canGoBack) {
-            _controller.goBack();
-          } else if (mounted) {
-            navigator.pop();
-          }
+        _controller.currentUrl().then((url) {
+          _controller.canGoBack().then((canGoBack) {
+            if (canGoBack && !_isRootOrLogin(_getUrl(), url)) {
+              _controller.goBack();
+            } else {
+              SystemNavigator.pop();
+            }
+          });
         });
       },
       child: Scaffold(
