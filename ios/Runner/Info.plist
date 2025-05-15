@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID is required to securely store login token.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location is required to show your current location on the map.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
