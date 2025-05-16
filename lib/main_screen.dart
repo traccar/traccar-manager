@@ -1,7 +1,13 @@
+import 'dart:developer' as developer;
+import 'dart:io';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:traccar_manager/main.dart';
 import 'package:traccar_manager/token_store.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -36,6 +42,33 @@ class _MainScreenState extends State<MainScreen> {
     return _preferences.getString(_urlKey) ?? 'https://demo.traccar.org'; //'http://localhost:3000';
   }
 
+  bool _isDownloadable(Uri uri) {
+    final lastSegment = uri.pathSegments.isNotEmpty ? uri.pathSegments.last.toLowerCase() : '';
+    return ['xlsx', 'kml', 'csv', 'gpx'].contains(lastSegment);
+  }
+
+  Future<String?> _downloadFile(Uri uri) async {
+    try {
+      final token = await _loginTokenStore.read(false);
+      if (token == null) return null;
+      final response = await http.get(uri, headers: {'Authorization': 'Bearer $token'});
+      if (response.statusCode == 200) {
+        final directory = Platform.isAndroid
+            ? await getExternalStorageDirectory()
+            : await getApplicationDocumentsDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final extension = uri.pathSegments.last;
+        final file = File('${directory!.path}/$timestamp.$extension');
+        await file.writeAsBytes(response.bodyBytes);
+        return file.path;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> _initWebView() async {
     _preferences = await SharedPreferences.getInstance();
 
@@ -54,9 +87,19 @@ class _MainScreenState extends State<MainScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) async {
+            final uri = Uri.parse(request.url);
             if (!request.url.startsWith(_getUrl())) {
-              if (await canLaunchUrl(Uri.parse(request.url))) {
-                await launchUrl(Uri.parse(request.url));
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+              return NavigationDecision.prevent;
+            }
+            if (_isDownloadable(uri)) {
+              final filePath = await _downloadFile(uri);
+              if (filePath != null) {
+                await SharePlus.instance.share(ShareParams(files: [XFile(filePath)]));
+              } else {
+                developer.log('Failed to download a file.');
               }
               return NavigationDecision.prevent;
             }
@@ -114,7 +157,7 @@ class _MainScreenState extends State<MainScreen> {
           _controller.runJavaScript("updateNotificationToken && updateNotificationToken('$notificationToken')");
         }
       case 'authentication':
-        final loginToken = await _loginTokenStore.read();
+        final loginToken = await _loginTokenStore.read(true);
         if (loginToken != null) {
           _controller.runJavaScript("handleLoginToken && handleLoginToken('$loginToken')");
         }
