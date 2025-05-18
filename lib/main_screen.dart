@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:app_links/app_links.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +30,8 @@ class _MainScreenState extends State<MainScreen> {
   bool _initialized = false;
   late final SharedPreferences _preferences;
   late final WebViewController _controller;
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _appLinksSubscription;
   final _loginTokenStore = TokenStore();
   final _messaging = FirebaseMessaging.instance;
 
@@ -36,6 +40,43 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _initWebView();
     _initNotifications();
+    _initAppLinks();
+  }
+
+  void _initAppLinks() {
+    _appLinks = AppLinks();
+    _appLinksSubscription = _appLinks.uriLinkStream.listen((uri) {
+      if (uri.scheme == 'traccar') {
+        final baseUri = Uri.parse(_getUrl());
+        _controller.loadRequest(
+          uri.replace(scheme: baseUri.scheme, host: baseUri.host, port: baseUri.port),
+        );
+      } else {
+        _controller.loadRequest(uri);
+      }
+    });
+  }
+
+  Future<void> _launchAuthorizeRequest(Uri uri) async {
+    try {
+      if (!uri.host.contains('google')) {
+        final updatedRedirect = Uri.parse(uri.queryParameters['redirect_uri']!)
+          .replace(scheme: 'traccar', host: 'manager', port: 0);
+        final updatedQueryParameters = Map<String, String>.from(uri.queryParameters);
+        updatedQueryParameters['redirect_uri'] = updatedRedirect.toString();
+        await launchUrl(uri.replace(queryParameters: updatedQueryParameters));
+      } else {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      developer.log('Failed to launch authorize request', error: e);
+    }
+  }
+
+  @override
+  void dispose() {
+    _appLinksSubscription?.cancel();
+    super.dispose();
   }
 
   String _getUrl() {
@@ -47,10 +88,10 @@ class _MainScreenState extends State<MainScreen> {
     return ['xlsx', 'kml', 'csv', 'gpx'].contains(lastSegment);
   }
 
-  Future<String?> _downloadFile(Uri uri) async {
+  Future<void> _downloadFile(Uri uri) async {
     try {
       final token = await _loginTokenStore.read(false);
-      if (token == null) return null;
+      if (token == null) return;
       final response = await http.get(uri, headers: {'Authorization': 'Bearer $token'});
       if (response.statusCode == 200) {
         final directory = Platform.isAndroid
@@ -60,12 +101,12 @@ class _MainScreenState extends State<MainScreen> {
         final extension = uri.pathSegments.last;
         final file = File('${directory!.path}/$timestamp.$extension');
         await file.writeAsBytes(response.bodyBytes);
-        return file.path;
+        await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
       } else {
-        return null;
+        developer.log('Failed file download request');
       }
     } catch (e) {
-      return null;
+      developer.log('Failed to download file', error: e);
     }
   }
 
@@ -86,21 +127,22 @@ class _MainScreenState extends State<MainScreen> {
       ..addJavaScriptChannel('appInterface', onMessageReceived: _handleWebMessage)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onNavigationRequest: (NavigationRequest request) async {
+          onNavigationRequest: (NavigationRequest request) {
             final uri = Uri.parse(request.url);
+            if (uri.path.contains('authorize') && uri.queryParameters.containsKey('redirect_uri')) {
+              _launchAuthorizeRequest(uri);
+              return NavigationDecision.prevent;
+            }
             if (!request.url.startsWith(_getUrl())) {
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri);
+              try {
+                launchUrl(uri);
+              } catch (e) {
+                developer.log('Failed to launch url', error: e);
               }
               return NavigationDecision.prevent;
             }
             if (_isDownloadable(uri)) {
-              final filePath = await _downloadFile(uri);
-              if (filePath != null) {
-                await SharePlus.instance.share(ShareParams(files: [XFile(filePath)]));
-              } else {
-                developer.log('Failed to download a file.');
-              }
+              _downloadFile(uri);
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;

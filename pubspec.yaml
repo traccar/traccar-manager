@@ -7,6 +7,7 @@ environment:
   sdk: ^3.7.2
 
 dependencies:
+  app_links: ^6.4.0
   firebase_analytics: ^11.4.5
   firebase_core: ^3.13.0
   firebase_crashlytics: ^4.3.5
