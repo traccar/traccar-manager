@@ -48,9 +48,15 @@ class _MainScreenState extends State<MainScreen> {
     _appLinksSubscription = _appLinks.uriLinkStream.listen((uri) {
       if (uri.scheme == 'traccar') {
         final baseUri = Uri.parse(_getUrl());
-        _controller.loadRequest(
-          uri.replace(scheme: baseUri.scheme, host: baseUri.host, port: baseUri.port),
+        final updatedQueryParameters = Map<String, String>.from(uri.queryParameters)
+          ..['redirect_uri'] = uri.toString().split('?').first;
+        final updatedUri = uri.replace(
+          scheme: baseUri.scheme,
+          host: baseUri.host,
+          port: baseUri.port,
+          queryParameters: updatedQueryParameters,
         );
+        _controller.loadRequest(updatedUri);
       } else {
         _controller.loadRequest(uri);
       }
@@ -59,15 +65,11 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _launchAuthorizeRequest(Uri uri) async {
     try {
-      if (!uri.host.contains('google')) {
-        final updatedRedirect = Uri.parse(uri.queryParameters['redirect_uri']!)
-          .replace(scheme: 'traccar', host: 'manager', port: 0);
-        final updatedQueryParameters = Map<String, String>.from(uri.queryParameters);
-        updatedQueryParameters['redirect_uri'] = updatedRedirect.toString();
-        await launchUrl(uri.replace(queryParameters: updatedQueryParameters));
-      } else {
-        await launchUrl(uri);
-      }
+      final updatedRedirect = Uri.parse(uri.queryParameters['redirect_uri']!)
+        .replace(scheme: 'traccar', host: 'manager', port: 0);
+      final updatedQueryParameters = Map<String, String>.from(uri.queryParameters)
+        ..['redirect_uri'] = updatedRedirect.toString();
+      await launchUrl(uri.replace(queryParameters: updatedQueryParameters), mode: LaunchMode.externalApplication);
     } catch (e) {
       developer.log('Failed to launch authorize request', error: e);
     }
@@ -135,7 +137,7 @@ class _MainScreenState extends State<MainScreen> {
             }
             if (!request.url.startsWith(_getUrl())) {
               try {
-                launchUrl(uri);
+                launchUrl(uri, mode: LaunchMode.externalApplication);
               } catch (e) {
                 developer.log('Failed to launch url', error: e);
               }
