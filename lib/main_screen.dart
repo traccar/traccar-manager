@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:traccar_manager/error_screen.dart';
 import 'package:traccar_manager/main.dart';
 import 'package:traccar_manager/token_store.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -34,6 +35,7 @@ class _MainScreenState extends State<MainScreen> {
   StreamSubscription<Uri>? _appLinksSubscription;
   final _loginTokenStore = TokenStore();
   final _messaging = FirebaseMessaging.instance;
+  String? _loadingError;
 
   @override
   void initState() {
@@ -149,6 +151,11 @@ class _MainScreenState extends State<MainScreen> {
             }
             return NavigationDecision.navigate;
           },
+          onWebResourceError: (WebResourceError error) {
+            if (error.isForMainFrame == true) {
+              setState(() => _loadingError = error.description);
+            }
+          },
         ),
       )
       ..loadRequest(Uri.parse(url));
@@ -226,6 +233,17 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     if (!_initialized) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadingError != null) {
+      return ErrorScreen(
+        error: _loadingError!,
+        url: _getUrl(),
+        onUrlSubmitted: (url) {
+          _preferences.setString(_urlKey, url);
+          _controller.loadRequest(Uri.parse(url));
+          setState(() { _loadingError = null; });
+        },
+      );
     }
     return PopScope(
       canPop: false,
