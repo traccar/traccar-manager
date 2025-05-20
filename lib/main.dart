@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:traccar_manager/main_screen.dart';
 
 void main() async {
@@ -32,6 +33,15 @@ class MainApp extends StatelessWidget {
         ),
       ),
       home: MainScreen(),
+      builder: (context, child) {
+        final brightness = MediaQuery.of(context).platformBrightness;
+        SystemChrome.setSystemUIOverlayStyle(
+          SystemUiOverlayStyle(
+            statusBarIconBrightness: brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+          ),
+        );
+        return child!;
+      },
     );
   }
 }
