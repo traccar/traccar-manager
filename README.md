@@ -1,18 +1,18 @@
-# [Traccar Client app](https://www.traccar.org/client)
+# [Traccar Manager app](https://www.traccar.org/manager)
 
-[![Get it on Google Play](http://www.tananaev.com/badges/google-play.svg)](https://play.google.com/store/apps/details?id=org.traccar.client) [![Download on the App Store](http://www.tananaev.com/badges/app-store.svg)](https://itunes.apple.com/app/traccar-client/id843156974)
+[![Get it on Google Play](http://www.tananaev.com/badges/google-play.svg)](https://play.google.com/store/apps/details?id=org.traccar.manager) [![Download on the App Store](http://www.tananaev.com/badges/app-store.svg)](https://itunes.apple.com/app/traccar-manager/id1113966562)
 
 ## Overview
 
-Traccar Client is a GPS tracking app for Android and iOS. It runs in the background and sends location updates to your own server using the open-source Traccar platform.
+Traccar Manager is the official mobile app for managing and monitoring your GPS tracking devices with the open-source Traccar platform.
 
-- **Real-time Tracking**: See your device’s location on your private server in real time.
-- **Open-Source**: 100% free and open-source, with no ads or tracking.
-- **Customizable**: Configure update intervals, accuracy, and data usage to fit your needs.
-- **Privacy First**: Your location data is sent only to your chosen server—never to third parties.
-- **Easy Integration**: Designed to work seamlessly with the Traccar server and many third-party GPS tracking platforms.
+- **Live Tracking**: View the real-time location of all your devices on an interactive map.
+- **Device Management**: Add, edit, or remove devices directly from your mobile device.
+- **Event Notifications**: Receive alerts for geofence crossings, device status changes, and more.
+- **History and Reports**: Review past routes and generate trip history for any device.
+- **Secure and Private**: All your data stays on your own server—no third-party access.
 
-Just enter your server address, grant location permissions, and the app will automatically send periodic location reports in the background.
+Connect the app to your Traccar Server, log in with your credentials, and instantly manage and monitor your fleet or personal devices from anywhere.
 
 ## Team
 
