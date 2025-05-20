@@ -84,7 +84,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   String _getUrl() {
-    return _preferences.getString(_urlKey) ?? 'https://demo.traccar.org'; //'http://localhost:3000';
+    return _preferences.getString(_urlKey) ?? 'https://demo.traccar.org';
   }
 
   bool _isDownloadable(Uri uri) {
