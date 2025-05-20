@@ -126,7 +126,13 @@ class _MainScreenState extends State<MainScreen> {
       }
     }
 
+    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final backgroundColor = brightness == Brightness.dark
+      ? const Color(0xFF000000)
+      : const Color(0xFFFFFFFF);
+
     _controller = WebViewController()
+      ..setBackgroundColor(backgroundColor)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel('appInterface', onMessageReceived: _handleWebMessage)
       ..setNavigationDelegate(
