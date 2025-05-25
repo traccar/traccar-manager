@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 
@@ -184,11 +185,12 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _initNotifications() async {
     await _messaging.requestPermission();
     _messaging.onTokenRefresh.listen((newToken) {
-      _controller.runJavaScript("updateNotificationToken && updateNotificationToken('$newToken')");
+      _controller.runJavaScript("updateNotificationToken?.('$newToken')");
     });
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
+        _controller.runJavaScript("handleNativeNotification?.('${jsonEncode(message.toMap())}')");
         scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(content: Text(notification.body ?? 'Unknown')),
         );
@@ -211,12 +213,12 @@ class _MainScreenState extends State<MainScreen> {
         }
         final notificationToken = await _messaging.getToken();
         if (notificationToken != null) {
-          _controller.runJavaScript("updateNotificationToken && updateNotificationToken('$notificationToken')");
+          _controller.runJavaScript("updateNotificationToken?.('$notificationToken')");
         }
       case 'authentication':
         final loginToken = await _loginTokenStore.read(true);
         if (loginToken != null) {
-          _controller.runJavaScript("handleLoginToken && handleLoginToken('$loginToken')");
+          _controller.runJavaScript("handleLoginToken?.('$loginToken')");
         }
       case 'logout':
         await _loginTokenStore.delete();
