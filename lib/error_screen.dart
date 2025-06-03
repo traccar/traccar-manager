@@ -19,6 +19,20 @@ class ErrorScreen extends StatefulWidget {
 class _ErrorScreenState extends State<ErrorScreen> {
   late TextEditingController _controller;
 
+  void _submit() {
+    final text = _controller.text.trim();
+    final uri = Uri.tryParse(text);
+    final valid = text.isNotEmpty && uri != null && uri.isAbsolute &&
+      (uri.scheme == 'http' || uri.scheme == 'https');
+    if (valid) {
+      widget.onUrlSubmitted(text);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid URL')),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,12 +70,12 @@ class _ErrorScreenState extends State<ErrorScreen> {
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   suffixIcon: InkWell(
-                    onTap: () => widget.onUrlSubmitted(_controller.text),
+                    onTap: _submit,
                     child: Icon(Icons.check),
                   ),
                 ),
                 textInputAction: TextInputAction.go,
-                onSubmitted: (_) => widget.onUrlSubmitted(_controller.text),
+                onSubmitted: (_) => _submit(),
               ),
             ),
           ],
