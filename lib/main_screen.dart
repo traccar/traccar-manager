@@ -18,6 +18,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_android/shared_preferences_android.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -30,7 +31,7 @@ class _MainScreenState extends State<MainScreen> {
   static const _urlKey = 'url';
 
   bool _initialized = false;
-  late final SharedPreferences _preferences;
+  late final SharedPreferencesWithCache _preferences;
   late final WebViewController _controller;
   late final AppLinks _appLinks;
   StreamSubscription<Uri>? _appLinksSubscription;
@@ -116,7 +117,12 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _initWebView() async {
-    _preferences = await SharedPreferences.getInstance();
+    _preferences = await SharedPreferencesWithCache.create(
+      sharedPreferencesOptions: Platform.isAndroid
+        ? SharedPreferencesAsyncAndroidOptions(backend: SharedPreferencesAndroidBackendLibrary.SharedPreferences)
+        : SharedPreferencesOptions(),
+      cacheOptions: SharedPreferencesWithCacheOptions(allowList: {'url'}),
+    );
 
     String url = _getUrl();
     final initialMessage = await _messaging.getInitialMessage();
