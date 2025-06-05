@@ -146,7 +146,7 @@ class _MainScreenState extends State<MainScreen> {
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
             final uri = Uri.parse(request.url);
-            if (uri.path.contains('authorize') && uri.queryParameters.containsKey('redirect_uri')) {
+            if (uri.queryParameters.containsKey('redirect_uri')) {
               _launchAuthorizeRequest(uri);
               return NavigationDecision.prevent;
             }
