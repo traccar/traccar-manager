@@ -59,7 +59,7 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>traccar</string>
+				<string>org.traccar.manager</string>
 			</array>
 		</dict>
 	</array>

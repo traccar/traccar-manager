@@ -50,7 +50,7 @@ class _MainScreenState extends State<MainScreen> {
   void _initAppLinks() {
     _appLinks = AppLinks();
     _appLinksSubscription = _appLinks.uriLinkStream.listen((uri) {
-      if (uri.scheme == 'traccar') {
+      if (uri.scheme == 'org.traccar.manager') {
         final baseUri = Uri.parse(_getUrl());
         final updatedQueryParameters = Map<String, String>.from(uri.queryParameters)
           ..['redirect_uri'] = uri.toString().split('?').first;
@@ -69,8 +69,12 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _launchAuthorizeRequest(Uri uri) async {
     try {
-      final updatedRedirect = Uri.parse(uri.queryParameters['redirect_uri']!)
-        .replace(scheme: 'traccar', host: 'manager', port: 0);
+      final originalRedirect = Uri.parse(uri.queryParameters['redirect_uri']!);
+      final updatedRedirect = Uri(
+        scheme: 'org.traccar.manager',
+        path: originalRedirect.path,
+        queryParameters: originalRedirect.queryParameters.isEmpty ? null : originalRedirect.queryParameters,
+      );
       final updatedQueryParameters = Map<String, String>.from(uri.queryParameters)
         ..['redirect_uri'] = updatedRedirect.toString();
       await launchUrl(uri.replace(queryParameters: updatedQueryParameters), mode: LaunchMode.externalApplication);
