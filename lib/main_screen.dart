@@ -166,7 +166,7 @@ class _MainScreenState extends State<MainScreen> {
           },
           onWebResourceError: (WebResourceError error) {
             if (error.isForMainFrame == true) {
-              setState(() => _loadingError = error.description);
+              setState(() => _loadingError = error.description.isNotEmpty ? error.description : 'Error');
             }
           },
         ),
