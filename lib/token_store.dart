@@ -10,8 +10,12 @@ class TokenStore {
   final _auth = LocalAuthentication();
 
   Future<void> save(String token) async {
-    await _storage.delete(key: _tokenKey);
-    await _storage.write(key: _tokenKey, value: token);
+    try {
+      await _storage.delete(key: _tokenKey);
+      await _storage.write(key: _tokenKey, value: token);
+    } on PlatformException catch (e) {
+      developer.log('Failed to write token.', error: e);
+    }
   }
 
   Future<String?> read(bool authenticate) async {
