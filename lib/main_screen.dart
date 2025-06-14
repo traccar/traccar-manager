@@ -234,8 +234,9 @@ class _MainScreenState extends State<MainScreen> {
         await _loginTokenStore.delete();
       case 'server':
         final url = parts[1];
+        await _loginTokenStore.delete();
         await _preferences.setString(_urlKey, url);
-        _controller.loadRequest(Uri.parse(url));
+        await _controller.loadRequest(Uri.parse(url));
     }
   }
 
@@ -256,9 +257,10 @@ class _MainScreenState extends State<MainScreen> {
       return ErrorScreen(
         error: _loadingError!,
         url: _getUrl(),
-        onUrlSubmitted: (url) {
-          _preferences.setString(_urlKey, url);
-          _controller.loadRequest(Uri.parse(url));
+        onUrlSubmitted: (url) async {
+          await _loginTokenStore.delete();
+          await _preferences.setString(_urlKey, url);
+          await _controller.loadRequest(Uri.parse(url));
           setState(() { _loadingError = null; });
         },
       );
