@@ -278,7 +278,9 @@ class _MainScreenState extends State<MainScreen> {
         });
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         body: SafeArea(
+          maintainBottomViewPadding: true,
           child: WebViewWidget(controller: _controller),
         ),
       ),
