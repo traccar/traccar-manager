@@ -200,7 +200,7 @@ class _MainScreenState extends State<MainScreen> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
-        _controller.runJavaScript("handleNativeNotification?.('${jsonEncode(message.toMap())}')");
+        _controller.runJavaScript("handleNativeNotification?.(${jsonEncode(message.toMap())})");
         scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(content: Text(notification.body ?? 'Unknown')),
         );
