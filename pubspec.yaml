@@ -1,7 +1,7 @@
 name: traccar_manager
 description: "Traccar Manager"
 publish_to: 'none'
-version: 5.1.1+54
+version: 5.1.2+55
 
 environment:
   sdk: ^3.7.2
