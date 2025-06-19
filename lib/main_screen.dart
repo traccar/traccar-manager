@@ -15,8 +15,7 @@ import 'package:traccar_manager/error_screen.dart';
 import 'package:traccar_manager/main.dart';
 import 'package:traccar_manager/token_store.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_android/shared_preferences_android.dart';
 
@@ -32,7 +31,7 @@ class _MainScreenState extends State<MainScreen> {
 
   bool _initialized = false;
   late final SharedPreferencesWithCache _preferences;
-  late final WebViewController _controller;
+  InAppWebViewController? _controller;
   late final AppLinks _appLinks;
   StreamSubscription<Uri>? _appLinksSubscription;
   final _loginTokenStore = TokenStore();
@@ -60,9 +59,9 @@ class _MainScreenState extends State<MainScreen> {
           port: baseUri.port,
           queryParameters: updatedQueryParameters,
         );
-        _controller.loadRequest(updatedUri);
+        _controller?.loadUrl(urlRequest: URLRequest(url: updatedUri));
       } else {
-        _controller.loadRequest(uri);
+        _controller?.loadUrl(urlRequest: URLRequest(url: uri));
       }
     });
   }
@@ -120,6 +119,8 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  String _initialUrl = '';
+
   Future<void> _initWebView() async {
     _preferences = await SharedPreferencesWithCache.create(
       sharedPreferencesOptions: Platform.isAndroid
@@ -137,55 +138,7 @@ class _MainScreenState extends State<MainScreen> {
       }
     }
 
-    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    final backgroundColor = brightness == Brightness.dark
-      ? const Color(0xFF000000)
-      : const Color(0xFFFFFFFF);
-
-    _controller = WebViewController()
-      ..setBackgroundColor(backgroundColor)
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..addJavaScriptChannel('appInterface', onMessageReceived: _handleWebMessage)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onNavigationRequest: (NavigationRequest request) {
-            final uri = Uri.parse(request.url);
-            if (['response_type', 'client_id', 'redirect_uri', 'scope'].every(uri.queryParameters.containsKey)) {
-              _launchAuthorizeRequest(uri);
-              return NavigationDecision.prevent;
-            }
-            if (!request.url.startsWith(_getUrl())) {
-              try {
-                launchUrl(uri, mode: LaunchMode.externalApplication);
-              } catch (e) {
-                developer.log('Failed to launch url', error: e);
-              }
-              return NavigationDecision.prevent;
-            }
-            if (_isDownloadable(uri)) {
-              _downloadFile(uri);
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-          onWebResourceError: (WebResourceError error) {
-            if (error.isForMainFrame == true) {
-              setState(() => _loadingError = error.description.isNotEmpty ? error.description : 'Error');
-            }
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(url));
-
-    final platformController = _controller.platform;
-    if (platformController is AndroidWebViewController) {
-      platformController.setGeolocationPermissionsPromptCallbacks(
-        onShowPrompt: (request) async {
-          final status = await Permission.location.request();
-          return GeolocationPermissionsResponse(allow: status.isGranted, retain: true);
-        },
-      );
-    }
+    _initialUrl = url;
 
     setState(() {
       _initialized = true;
@@ -195,12 +148,12 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _initNotifications() async {
     await _messaging.requestPermission();
     _messaging.onTokenRefresh.listen((newToken) {
-      _controller.runJavaScript("updateNotificationToken?.('$newToken')");
+      _controller?.evaluateJavascript(source: "updateNotificationToken?.('$newToken')");
     });
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
-        _controller.runJavaScript("handleNativeNotification?.(${jsonEncode(message.toMap())})");
+        _controller?.evaluateJavascript(source: "handleNativeNotification?.(${jsonEncode(message.toMap())})");
         scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(content: Text(notification.body ?? 'Unknown')),
         );
@@ -209,13 +162,13 @@ class _MainScreenState extends State<MainScreen> {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       final eventId = message.data['eventId'];
       if (eventId != null) {
-        _controller.loadRequest(Uri.parse('${_getUrl()}?eventId=$eventId'));
+        _controller?.loadUrl(urlRequest: URLRequest(url: Uri.parse('${_getUrl()}?eventId=$eventId')));
       }
     });
   }
 
-  void _handleWebMessage(JavaScriptMessage interfaceMessage) async {
-    final List<String> parts = interfaceMessage.message.split('|');
+  void _handleWebMessage(String message) async {
+    final List<String> parts = message.split('|');
     switch (parts[0]) {
       case 'login':
         if (parts.length > 1) {
@@ -223,12 +176,12 @@ class _MainScreenState extends State<MainScreen> {
         }
         final notificationToken = await _messaging.getToken();
         if (notificationToken != null) {
-          _controller.runJavaScript("updateNotificationToken?.('$notificationToken')");
+          _controller?.evaluateJavascript(source: "updateNotificationToken?.('$notificationToken')");
         }
       case 'authentication':
         final loginToken = await _loginTokenStore.read(true);
         if (loginToken != null) {
-          _controller.runJavaScript("handleLoginToken?.('$loginToken')");
+          _controller?.evaluateJavascript(source: "handleLoginToken?.('$loginToken')");
         }
       case 'logout':
         await _loginTokenStore.delete();
@@ -236,7 +189,7 @@ class _MainScreenState extends State<MainScreen> {
         final url = parts[1];
         await _loginTokenStore.delete();
         await _preferences.setString(_urlKey, url);
-        await _controller.loadRequest(Uri.parse(url));
+        await _controller?.loadUrl(urlRequest: URLRequest(url: Uri.parse(url)));
     }
   }
 
@@ -260,7 +213,7 @@ class _MainScreenState extends State<MainScreen> {
         onUrlSubmitted: (url) async {
           await _loginTokenStore.delete();
           await _preferences.setString(_urlKey, url);
-          await _controller.loadRequest(Uri.parse(url));
+          await _controller?.loadUrl(urlRequest: URLRequest(url: Uri.parse(url)));
           setState(() { _loadingError = null; });
         },
       );
@@ -269,10 +222,10 @@ class _MainScreenState extends State<MainScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _controller.currentUrl().then((url) {
-          _controller.canGoBack().then((canGoBack) {
+        _controller?.getUrl().then((url) {
+          _controller?.canGoBack().then((canGoBack) {
             if (canGoBack && !_isRootOrLogin(_getUrl(), url)) {
-              _controller.goBack();
+              _controller?.goBack();
             } else {
               SystemNavigator.pop();
             }
@@ -283,7 +236,68 @@ class _MainScreenState extends State<MainScreen> {
         resizeToAvoidBottomInset: false,
         body: SafeArea(
           maintainBottomViewPadding: true,
-          child: WebViewWidget(controller: _controller),
+          child: InAppWebView(
+            initialUrlRequest: URLRequest(url: Uri.parse(_initialUrl)),
+            initialOptions: InAppWebViewGroupOptions(
+              crossPlatform: InAppWebViewOptions(
+                javaScriptEnabled: true,
+                useShouldOverrideUrlLoading: true,
+              ),
+            ),
+            onWebViewCreated: (controller) {
+              _controller = controller;
+              controller.addJavaScriptHandler(
+                handlerName: 'appInterface',
+                callback: (args) {
+                  if (args.isNotEmpty) {
+                    _handleWebMessage(args.first);
+                  }
+                },
+              );
+            },
+            androidOnGeolocationPermissionsShowPrompt:
+                (controller, origin) async {
+              final status = await Permission.location.request();
+              return GeolocationPermissionShowPromptResponse(
+                origin: origin,
+                allow: status.isGranted,
+                retain: true,
+              );
+            },
+            shouldOverrideUrlLoading: (controller, action) async {
+              final uri = action.request.url!;
+              if ([
+                'response_type',
+                'client_id',
+                'redirect_uri',
+                'scope'
+              ].every(uri.queryParameters.containsKey)) {
+                _launchAuthorizeRequest(uri);
+                return NavigationActionPolicy.CANCEL;
+              }
+              if (!uri.toString().startsWith(_getUrl())) {
+                try {
+                  launchUrl(uri, mode: LaunchMode.externalApplication);
+                } catch (e) {
+                  developer.log('Failed to launch url', error: e);
+                }
+                return NavigationActionPolicy.CANCEL;
+              }
+              if (_isDownloadable(uri)) {
+                _downloadFile(uri);
+                return NavigationActionPolicy.CANCEL;
+              }
+              return NavigationActionPolicy.ALLOW;
+            },
+            onReceivedError: (controller, request, error) {
+              if (request.isForMainFrame ?? true) {
+                setState(() => _loadingError =
+                    error.description?.isNotEmpty == true
+                        ? error.description
+                        : 'Error');
+              }
+            },
+          ),
         ),
       ),
     );
