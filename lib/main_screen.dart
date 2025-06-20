@@ -168,6 +168,9 @@ class _MainScreenState extends State<MainScreen> {
             }
             return NavigationDecision.navigate;
           },
+          onPageStarted: (String url) {
+            setState(() => _loadingError = null);
+          },
           onWebResourceError: (WebResourceError error) {
             if (error.isForMainFrame == true) {
               setState(() => _loadingError = error.description.isNotEmpty ? error.description : 'Error');
