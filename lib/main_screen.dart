@@ -142,7 +142,28 @@ class _MainScreenState extends State<MainScreen> {
       ? const Color(0xFF000000)
       : const Color(0xFFFFFFFF);
 
-    _controller = WebViewController()
+    _controller = WebViewController(
+      onPermissionRequest: (request) async {
+        bool allGranted = true;
+        for (final type in request.types) {
+          PermissionStatus status;
+          switch (type) {
+            case WebViewPermissionResourceType.camera:
+              status = await Permission.camera.request();
+              break;
+            default:
+              allGranted = false;
+              continue;
+          }
+          if (!status.isGranted) allGranted = false;
+        }
+        if (allGranted) {
+          await request.grant();
+        } else {
+          await request.deny();
+        }
+      },
+    )
       ..setBackgroundColor(backgroundColor)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel('appInterface', onMessageReceived: _handleWebMessage)
