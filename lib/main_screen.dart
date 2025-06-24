@@ -19,6 +19,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_android/shared_preferences_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -197,7 +198,9 @@ class _MainScreenState extends State<MainScreen> {
           },
           onWebResourceError: (WebResourceError error) {
             if (error.isForMainFrame == true) {
-              setState(() => _loadingError = error.description.isNotEmpty ? error.description : 'Error');
+              if (error is! WebKitWebResourceError || error.errorCode != 102) {
+                setState(() => _loadingError = error.description.isNotEmpty ? error.description : 'Error');
+              }
             }
           },
         ),
