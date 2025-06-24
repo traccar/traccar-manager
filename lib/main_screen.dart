@@ -30,7 +30,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   static const _urlKey = 'url';
 
-  bool _initialized = false;
+  final _initialized = Completer<void>();
+  final _authenticated = Completer<void>();
+
   late final SharedPreferencesWithCache _preferences;
   late final WebViewController _controller;
   late final AppLinks _appLinks;
@@ -43,11 +45,12 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _initWebView();
-    _initNotifications();
     _initAppLinks();
+    _initNotifications();
   }
 
-  void _initAppLinks() {
+  Future<void> _initAppLinks() async {
+    await _initialized.future;
     _appLinks = AppLinks();
     _appLinksSubscription = _appLinks.uriLinkStream.listen((uri) {
       if (uri.scheme == 'org.traccar.manager') {
@@ -212,12 +215,20 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     setState(() {
-      _initialized = true;
+      _initialized.complete();
     });
   }
 
   Future<void> _initNotifications() async {
+    await _initialized.future;
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      final eventId = message.data['eventId'];
+      if (eventId != null) {
+        _controller.loadRequest(Uri.parse('${_getUrl()}?eventId=$eventId'));
+      }
+    });
     await _messaging.requestPermission();
+    await _authenticated.future.timeout(Duration(seconds: 30), onTimeout: () {});
     _messaging.onTokenRefresh.listen((newToken) {
       _controller.runJavaScript("updateNotificationToken?.('$newToken')");
     });
@@ -228,12 +239,6 @@ class _MainScreenState extends State<MainScreen> {
         scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(content: Text(notification.body ?? 'Unknown')),
         );
-      }
-    });
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      final eventId = message.data['eventId'];
-      if (eventId != null) {
-        _controller.loadRequest(Uri.parse('${_getUrl()}?eventId=$eventId'));
       }
     });
   }
@@ -254,6 +259,8 @@ class _MainScreenState extends State<MainScreen> {
         if (loginToken != null) {
           _controller.runJavaScript("handleLoginToken?.('$loginToken')");
         }
+      case 'authenticated':
+        if (!_authenticated.isCompleted) _authenticated.complete();
       case 'logout':
         await _loginTokenStore.delete();
       case 'server':
@@ -274,7 +281,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized) {
+    if (!_initialized.isCompleted) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_loadingError != null) {
