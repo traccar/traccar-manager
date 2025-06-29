@@ -179,7 +179,7 @@ class _MainScreenState extends State<MainScreen> {
               _launchAuthorizeRequest(uri);
               return NavigationDecision.prevent;
             }
-            if (!request.url.startsWith(_getUrl())) {
+            if (uri.authority != Uri.parse(_getUrl()).authority) {
               try {
                 launchUrl(uri, mode: LaunchMode.externalApplication);
               } catch (e) {
