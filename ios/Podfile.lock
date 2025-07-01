@@ -157,7 +157,7 @@ PODS:
   - PromisesObjC (2.4.0)
   - PromisesSwift (2.4.0):
     - PromisesObjC (= 2.4.0)
-  - rate_my_app (2.3.0):
+  - rate_my_app (2.3.2):
     - Flutter
     - FlutterMacOS
   - share_plus (0.0.1):
@@ -266,7 +266,7 @@ SPEC CHECKSUMS:
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   PromisesSwift: 9d77319bbe72ebf6d872900551f7eeba9bce2851
-  rate_my_app: 567848e885b804d65eb9443f96e9fc2c30a06abb
+  rate_my_app: cbb89973f870601f80f7bad63aba107260cabc5b
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d

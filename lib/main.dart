@@ -12,7 +12,7 @@ void main() async {
   runApp(MainApp());
 }
 
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
@@ -38,7 +38,7 @@ class _MainAppState extends State<MainApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      scaffoldMessengerKey: scaffoldMessengerKey,
+      scaffoldMessengerKey: messengerKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,

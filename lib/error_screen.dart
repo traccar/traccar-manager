@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:traccar_manager/main.dart';
 
 class ErrorScreen extends StatefulWidget {
   final String error;
@@ -27,9 +28,7 @@ class _ErrorScreenState extends State<ErrorScreen> {
     if (valid) {
       widget.onUrlSubmitted(text);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid URL')),
-      );
+      messengerKey.currentState?.showSnackBar(SnackBar(content: Text('Invalid URL')));
     }
   }
 

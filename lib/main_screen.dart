@@ -239,9 +239,7 @@ class _MainScreenState extends State<MainScreen> {
       final notification = message.notification;
       if (notification != null) {
         _controller.runJavaScript("handleNativeNotification?.(${jsonEncode(message.toMap())})");
-        scaffoldMessengerKey.currentState?.showSnackBar(
-          SnackBar(content: Text(notification.body ?? 'Unknown')),
-        );
+        messengerKey.currentState?.showSnackBar(SnackBar(content: Text(notification.body ?? 'Unknown')));
       }
     });
   }
