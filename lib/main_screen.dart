@@ -255,7 +255,6 @@ class _MainScreenState extends State<MainScreen> {
           _controller.runJavaScript("updateNotificationToken?.('$notificationToken')");
         }
       case 'authentication':
-        developer.log('yaya authentication called');
         final loginToken = await _loginTokenStore.read(true);
         if (loginToken != null) {
           _controller.runJavaScript("handleLoginToken?.('$loginToken')");
