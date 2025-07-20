@@ -196,9 +196,14 @@ class _MainScreenState extends State<MainScreen> {
             setState(() => _loadingError = null);
           },
           onWebResourceError: (WebResourceError error) {
-            if (error.isForMainFrame == true) {
+            if (error.errorType == WebResourceErrorType.webContentProcessTerminated) {
+              _controller.reload();
+            } else if (error.isForMainFrame == true) {
               if (error is! WebKitWebResourceError || error.errorCode != 102) {
-                setState(() => _loadingError = error.description.isNotEmpty ? error.description : 'Error');
+                final errorMessage = error.description.isNotEmpty
+                  ? error.description
+                  : error.errorType?.name ?? 'Error ${error.errorCode}';
+                setState(() => _loadingError = errorMessage);
               }
             }
           },
