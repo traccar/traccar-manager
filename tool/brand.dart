@@ -17,7 +17,7 @@ Future<void> main() async {
   await _updateVersion(version);
   await _updateUrl(url);
   await _createKeystore();
-  await _run('flutterfire', ['configure']);
+  stdout.writeln('Please run `flutterfire configure` now.');
 }
 
 Future<void> _generateIcons(String icon) async {
@@ -37,6 +37,12 @@ flutter_launcher_icons:
 ''');
   await _run('flutter', ['pub', 'run', 'flutter_launcher_icons']);
   await f.delete();
+
+  await _replaceInFile(
+    'android/app/src/main/AndroidManifest.xml',
+    RegExp(r'\s*<meta-data\s+android:name="com\.google\.firebase\.messaging\.default_notification_icon"[\s\S]*?/>', multiLine: true),
+    '',
+  );
 }
 
 Future<void> _updateTitle(String name) async {
