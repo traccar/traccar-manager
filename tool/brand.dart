@@ -103,7 +103,7 @@ Future<void> _createKeystore() async {
 storePassword=$keystorePassword
 keyPassword=$keystorePassword
 keyAlias=$keystoreAlias
-storeFile=$keystoreFilePath
+storeFile=../../$keystoreFilePath
 ''';
   await file.writeAsString(content);
 
