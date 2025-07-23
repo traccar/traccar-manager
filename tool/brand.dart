@@ -61,7 +61,7 @@ Future<void> _updateTitle(String name) async {
 
 Future<void> _updatePackageId(String id) async {
   await _replaceInFile(
-    'android/app/build.gradle',
+    'android/app/build.gradle.kts',
     RegExp(r'applicationId = ".*?"'),
     'applicationId = "$id"',
   );
