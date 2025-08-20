@@ -130,7 +130,7 @@ Future<void> _replaceInFile(String path, RegExp pattern, String replacement) asy
   final file = File(path);
   if (!await file.exists()) return;
   final text = await file.readAsString();
-  final newText = text.replaceFirst(pattern, replacement);
+  final newText = text.replaceAll(pattern, replacement);
   if (newText != text) await file.writeAsString(newText);
 }
 
