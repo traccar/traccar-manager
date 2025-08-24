@@ -137,7 +137,7 @@ class _MainScreenState extends State<MainScreen> {
     if (initialMessage != null) {
       final eventId = initialMessage.data['eventId'];
       if (eventId != null) {
-        url = '$url?eventId=$eventId';
+        url = '$url/event/$eventId';
       }
     }
 
@@ -231,7 +231,7 @@ class _MainScreenState extends State<MainScreen> {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       final eventId = message.data['eventId'];
       if (eventId != null) {
-        _controller.loadRequest(Uri.parse('${_getUrl()}?eventId=$eventId'));
+        _controller.loadRequest(Uri.parse('${_getUrl()}/event/$eventId'));
       }
     });
     await _messaging.requestPermission();
