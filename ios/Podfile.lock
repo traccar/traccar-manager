@@ -9,18 +9,18 @@ PODS:
   - Firebase/Messaging (12.2.0):
     - Firebase/CoreOnly
     - FirebaseMessaging (~> 12.2.0)
-  - firebase_analytics (12.0.1):
+  - firebase_analytics (12.0.2):
     - firebase_core
     - FirebaseAnalytics (= 12.2.0)
     - Flutter
-  - firebase_core (4.1.0):
+  - firebase_core (4.1.1):
     - Firebase/CoreOnly (= 12.2.0)
     - Flutter
-  - firebase_crashlytics (5.0.1):
+  - firebase_crashlytics (5.0.2):
     - Firebase/Crashlytics (= 12.2.0)
     - firebase_core
     - Flutter
-  - firebase_messaging (16.0.1):
+  - firebase_messaging (16.0.2):
     - Firebase/Messaging (= 12.2.0)
     - firebase_core
     - Flutter
@@ -244,10 +244,10 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
   Firebase: 26f6f8d460603af3df970ad505b16b15f5e2e9a1
-  firebase_analytics: 111ff65791a430356bd6c7e4d7339537fc6a15ae
-  firebase_core: 3ff52146406557dddd01d570e807e203ec7e1302
-  firebase_crashlytics: 3637078b718a52dc9fb4d64e37c969e86b87ff6f
-  firebase_messaging: 3dcc998dd98e1e54af75d0cccae8606eba43553c
+  firebase_analytics: 8c78ce6224e0623152379d6cc7ef3d9098477b7e
+  firebase_core: dfc4bd142bee4bc53a5d482397ca322c2dd3165d
+  firebase_crashlytics: e55dcf895eed0dd87c447dd5aff8db7f1bb8bbdb
+  firebase_messaging: 38c66c1184695b0c87abe51d40fc590718abed1a
   FirebaseAnalytics: e04e23bc070e3014aa5cf4980f9df7ce5cd79ec8
   FirebaseCore: 311c48a147ad4a0ab7febbaed89e8025c67510cd
   FirebaseCoreExtension: 73af080c22a2f7b44cefa391dc08f7e4ee162cb5
@@ -263,7 +263,7 @@ SPEC CHECKSUMS:
   GoogleAppMeasurement: 09f341dfa8527d1612a09cbfe809a242c0b737af
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
-  local_auth_darwin: d2e8c53ef0c4f43c646462e3415432c4dab3ae19
+  local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
@@ -273,7 +273,7 @@ SPEC CHECKSUMS:
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
-  webview_flutter_wkwebview: 1821ceac936eba6f7984d89a9f3bcb4dea99ebb2
+  webview_flutter_wkwebview: 8ebf4fded22593026f7dbff1fbff31ea98573c8d
 
 PODFILE CHECKSUM: ce2a4dd764e1c7aeed6a7cdc5e61d092b6dc6d32
 
