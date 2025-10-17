@@ -102,20 +102,24 @@ class _MainScreenState extends State<MainScreen> {
     return ['xlsx', 'kml', 'csv', 'gpx'].contains(lastSegment);
   }
 
+  Future<void> _shareFile(String fileName, Uint8List bytes) async {
+    final directory = Platform.isAndroid
+          ? await getExternalStorageDirectory()
+          : await getApplicationDocumentsDirectory();
+      final file = File('${directory!.path}/$fileName');
+      await file.writeAsBytes(bytes);
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+  }
+
   Future<void> _downloadFile(Uri uri) async {
     try {
       final token = await _loginTokenStore.read(false);
       if (token == null) return;
       final response = await http.get(uri, headers: {'Authorization': 'Bearer $token'});
       if (response.statusCode == 200) {
-        final directory = Platform.isAndroid
-            ? await getExternalStorageDirectory()
-            : await getApplicationDocumentsDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final extension = uri.pathSegments.last;
-        final file = File('${directory!.path}/$timestamp.$extension');
-        await file.writeAsBytes(response.bodyBytes);
-        await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+        _shareFile('$timestamp.$extension', response.bodyBytes);
       } else {
         developer.log('Failed file download request');
       }
@@ -172,6 +176,18 @@ class _MainScreenState extends State<MainScreen> {
       ..addJavaScriptChannel('appInterface', onMessageReceived: _handleWebMessage)
       ..setNavigationDelegate(
         NavigationDelegate(
+          onPageFinished: (String url) {
+            _controller.runJavaScript('''
+              window.saveAs = (blob, name) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const message = 'download|' + encodeURIComponent(name || 'download') + '|' + reader.result.split(',')[1];
+                  window.appInterface.postMessage(message);
+                };
+                reader.readAsDataURL(blob);
+              };
+            ''');
+          },
           onNavigationRequest: (NavigationRequest request) {
             final uri = Uri.parse(request.url);
             if (['response_type', 'client_id', 'redirect_uri', 'scope'].every(uri.queryParameters.containsKey)) {
@@ -268,6 +284,12 @@ class _MainScreenState extends State<MainScreen> {
         if (!_authenticated.isCompleted) _authenticated.complete();
       case 'logout':
         await _loginTokenStore.delete();
+      case 'download':
+        try {
+          _shareFile(Uri.decodeComponent(parts[1]), base64Decode(parts.sublist(2).join('|')));
+        } catch (e) {
+          developer.log('Failed to save downloaded file', error: e);
+        }
       case 'server':
         final url = parts[1];
         await _loginTokenStore.delete();
