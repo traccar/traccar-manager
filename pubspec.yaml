@@ -16,7 +16,7 @@ dependencies:
     sdk: flutter
   flutter_secure_storage: ^9.2.4
   http: ^1.5.0
-  local_auth: ^2.3.0
+  local_auth: ^3.0.0
   path_provider: ^2.1.5
   permission_handler: ^12.0.1
   rate_my_app: ^2.3.2
