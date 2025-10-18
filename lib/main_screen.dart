@@ -178,13 +178,17 @@ class _MainScreenState extends State<MainScreen> {
         NavigationDelegate(
           onPageFinished: (String url) {
             _controller.runJavaScript('''
-              window.saveAs = (blob, name) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                  const message = 'download|' + encodeURIComponent(name || 'download') + '|' + reader.result.split(',')[1];
-                  window.appInterface.postMessage(message);
-                };
-                reader.readAsDataURL(blob);
+              const excelType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+              const originalCreateObjectURL = URL.createObjectURL;
+              URL.createObjectURL = function(object) {
+                if (object instanceof Blob && object.type === excelType) {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    window.appInterface.postMessage('download|' + reader.result.split(',')[1]);
+                  };
+                  reader.readAsDataURL(object);
+                }
+                return originalCreateObjectURL.apply(this, arguments);
               };
             ''');
           },
@@ -286,7 +290,7 @@ class _MainScreenState extends State<MainScreen> {
         await _loginTokenStore.delete();
       case 'download':
         try {
-          _shareFile(Uri.decodeComponent(parts[1]), base64Decode(parts.sublist(2).join('|')));
+          _shareFile('report.xlsx', base64Decode(parts[1]));
         } catch (e) {
           developer.log('Failed to save downloaded file', error: e);
         }
