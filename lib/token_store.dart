@@ -29,6 +29,8 @@ class TokenStore {
       if (authenticated) {
         return _storage.read(key: _tokenKey);
       }
+    } on LocalAuthException catch (e) {
+      developer.log('Failed to read token.', error: e);
     } on PlatformException catch (e) {
       developer.log('Failed to read token.', error: e);
     }
