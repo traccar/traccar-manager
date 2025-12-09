@@ -21,7 +21,7 @@ dependencies:
   permission_handler: ^12.0.1
   rate_my_app: ^2.3.2
   share_plus: ^12.0.1
-  shared_preferences: ^2.5.3
+  shared_preferences: ^2.5.4
   shared_preferences_android: ^2.4.18
   url_launcher: ^6.3.2
   webview_flutter: ^4.11.0
