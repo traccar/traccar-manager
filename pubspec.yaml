@@ -10,7 +10,7 @@ dependencies:
   app_links: ^7.0.0
   firebase_analytics: ^12.1.0
   firebase_core: ^4.3.0
-  firebase_crashlytics: ^5.0.5
+  firebase_crashlytics: ^5.0.6
   firebase_messaging: ^16.1.0
   flutter:
     sdk: flutter
