@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rate_my_app/rate_my_app.dart';
 import 'package:traccar_manager/main_screen.dart';
+import 'package:traccar_manager/network_service.dart';
+import 'package:traccar_manager/network_snackbar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +14,8 @@ void main() async {
   runApp(MainApp());
 }
 
-final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> messengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
@@ -22,17 +25,32 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp> {
-  RateMyApp rateMyApp = RateMyApp();
+  final RateMyApp _rateMyApp = RateMyApp();
+  final NetworkService _networkService = NetworkService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await rateMyApp.init();
-      if (mounted && rateMyApp.shouldOpenDialog) {  
-        rateMyApp.showRateDialog(context);
+      await _rateMyApp.init();
+      if (mounted && _rateMyApp.shouldOpenDialog) {
+        _rateMyApp.showRateDialog(context);
       }
+      _networkService.startListening(
+        onConnected: () {
+          hideInternetSnackbar(messengerKey);
+        },
+        onDisconnected: () {
+          showNoInternetSnackbar(messengerKey);
+        },
+      );
     });
+  }
+
+  @override
+  void dispose() {
+    _networkService.dispose();
+    super.dispose();
   }
 
   @override
@@ -56,7 +74,10 @@ class _MainAppState extends State<MainApp> {
         final brightness = MediaQuery.of(context).platformBrightness;
         SystemChrome.setSystemUIOverlayStyle(
           SystemUiOverlayStyle(
-            statusBarIconBrightness: brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+            statusBarIconBrightness:
+                brightness == Brightness.dark
+                    ? Brightness.light
+                    : Brightness.dark,
           ),
         );
         return child!;
