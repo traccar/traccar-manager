@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   app_links: ^7.0.0
+  connectivity_plus: ^7.0.0
   firebase_analytics: ^12.1.1
   firebase_core: ^4.4.0
   firebase_crashlytics: ^5.0.7
@@ -16,6 +17,7 @@ dependencies:
     sdk: flutter
   flutter_secure_storage: ^10.0.0
   http: ^1.6.0
+  internet_connection_checker: ^1.0.0+1
   local_auth: ^3.0.0
   path_provider: ^2.1.5
   permission_handler: ^12.0.1
