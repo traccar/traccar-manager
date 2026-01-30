@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
@@ -7,19 +8,17 @@ import 'package:app_links/app_links.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_android/shared_preferences_android.dart';
 import 'package:traccar_manager/error_screen.dart';
 import 'package:traccar_manager/main.dart';
 import 'package:traccar_manager/token_store.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shared_preferences_android/shared_preferences_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -35,12 +34,15 @@ class _MainScreenState extends State<MainScreen> {
   final _authenticated = Completer<void>();
 
   late final SharedPreferencesWithCache _preferences;
-  late final WebViewController _controller;
   late final AppLinks _appLinks;
   StreamSubscription<Uri>? _appLinksSubscription;
   final _loginTokenStore = TokenStore();
   final _messaging = FirebaseMessaging.instance;
+  InAppWebViewController? _controller;
   String? _loadingError;
+  String? _initialUrl;
+  bool _settingsReady = false;
+  bool _controllerReady = false;
 
   @override
   void initState() {
@@ -66,9 +68,9 @@ class _MainScreenState extends State<MainScreen> {
           path: '/${appPathSegments.join('/')}',
           queryParameters: updatedQueryParameters,
         );
-        _controller.loadRequest(updatedUri);
+        _loadUrl(updatedUri);
       } else {
-        _controller.loadRequest(uri);
+        _loadUrl(uri);
       }
     });
   }
@@ -108,11 +110,11 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _shareFile(String fileName, Uint8List bytes) async {
     final directory = Platform.isAndroid
-          ? await getExternalStorageDirectory()
-          : await getApplicationDocumentsDirectory();
-      final file = File('${directory!.path}/$fileName');
-      await file.writeAsBytes(bytes);
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+      ? await getExternalStorageDirectory()
+      : await getApplicationDocumentsDirectory();
+    final file = File('${directory!.path}/$fileName');
+    await file.writeAsBytes(bytes);
+    await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
   }
 
   Future<void> _downloadFile(Uri uri) async {
@@ -132,6 +134,12 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  void _maybeCompleteInitialized() {
+    if (!_initialized.isCompleted && _settingsReady && _controllerReady) {
+      _initialized.complete();
+    }
+  }
+
   Future<void> _initWebView() async {
     _preferences = await SharedPreferencesWithCache.create(
       sharedPreferencesOptions: Platform.isAndroid
@@ -140,7 +148,7 @@ class _MainScreenState extends State<MainScreen> {
       cacheOptions: SharedPreferencesWithCacheOptions(allowList: {'url'}),
     );
 
-    String url = _getUrl();
+    var url = _getUrl();
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       final eventId = initialMessage.data['eventId'];
@@ -149,105 +157,12 @@ class _MainScreenState extends State<MainScreen> {
       }
     }
 
-    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    final backgroundColor = brightness == Brightness.dark
-      ? const Color(0xFF000000)
-      : const Color(0xFFFFFFFF);
-
-    _controller = WebViewController(
-      onPermissionRequest: (request) async {
-        bool allGranted = true;
-        for (final type in request.types) {
-          PermissionStatus status;
-          switch (type) {
-            case WebViewPermissionResourceType.camera:
-              status = await Permission.camera.request();
-            default:
-              allGranted = false;
-              continue;
-          }
-          if (!status.isGranted) allGranted = false;
-        }
-        if (allGranted) {
-          await request.grant();
-        } else {
-          await request.deny();
-        }
-      },
-    )
-      ..setBackgroundColor(backgroundColor)
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..addJavaScriptChannel('appInterface', onMessageReceived: _handleWebMessage)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageFinished: (String url) {
-            _controller.runJavaScript('''
-              const excelType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-              const originalCreateObjectURL = URL.createObjectURL;
-              URL.createObjectURL = function(object) {
-                if (object instanceof Blob && object.type === excelType) {
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    window.appInterface.postMessage('download|' + reader.result.split(',')[1]);
-                  };
-                  reader.readAsDataURL(object);
-                }
-                return originalCreateObjectURL.apply(this, arguments);
-              };
-            ''');
-          },
-          onNavigationRequest: (NavigationRequest request) {
-            final uri = Uri.parse(request.url);
-            if (['response_type', 'client_id', 'redirect_uri', 'scope'].every(uri.queryParameters.containsKey)) {
-              _launchAuthorizeRequest(uri);
-              return NavigationDecision.prevent;
-            }
-            if (uri.authority != Uri.parse(_getUrl()).authority) {
-              try {
-                launchUrl(uri, mode: LaunchMode.externalApplication);
-              } catch (e) {
-                developer.log('Failed to launch url', error: e);
-              }
-              return NavigationDecision.prevent;
-            }
-            if (_isDownloadable(uri)) {
-              _downloadFile(uri);
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-          onPageStarted: (String url) {
-            setState(() => _loadingError = null);
-          },
-          onWebResourceError: (WebResourceError error) {
-            if (error.errorType == WebResourceErrorType.webContentProcessTerminated) {
-              _controller.reload();
-            } else if (error.isForMainFrame == true) {
-              if (error is! WebKitWebResourceError || error.errorCode != 102) {
-                final errorMessage = error.description.isNotEmpty
-                  ? error.description
-                  : error.errorType?.name ?? 'Error ${error.errorCode}';
-                setState(() => _loadingError = errorMessage);
-              }
-            }
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(url));
-
-    final platformController = _controller.platform;
-    if (platformController is AndroidWebViewController) {
-      platformController.setGeolocationPermissionsPromptCallbacks(
-        onShowPrompt: (request) async {
-          final status = await Permission.location.request();
-          return GeolocationPermissionsResponse(allow: status.isGranted, retain: true);
-        },
-      );
-    }
-
     setState(() {
-      _initialized.complete();
+      _initialUrl = url;
+      _settingsReady = true;
     });
+
+    _maybeCompleteInitialized();
   }
 
   Future<void> _initNotifications() async {
@@ -255,38 +170,38 @@ class _MainScreenState extends State<MainScreen> {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       final eventId = message.data['eventId'];
       if (eventId != null) {
-        _controller.loadRequest(Uri.parse('${_getUrl()}/event/$eventId'));
+        _loadUrl(Uri.parse('${_getUrl()}/event/$eventId'));
       }
     });
     await _messaging.requestPermission();
-    await _authenticated.future.timeout(Duration(seconds: 30), onTimeout: () {});
+    await _authenticated.future.timeout(const Duration(seconds: 30), onTimeout: () {});
     _messaging.onTokenRefresh.listen((newToken) {
-      _controller.runJavaScript("updateNotificationToken?.('$newToken')");
+      _controller?.evaluateJavascript(source: "updateNotificationToken?.('$newToken')");
     });
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
-        _controller.runJavaScript("handleNativeNotification?.(${jsonEncode(message.toMap())})");
+        _controller?.evaluateJavascript(source: "handleNativeNotification?.(${jsonEncode(message.toMap())})");
         messengerKey.currentState?.showSnackBar(SnackBar(content: Text(notification.body ?? 'Unknown')));
       }
     });
   }
 
-  void _handleWebMessage(JavaScriptMessage interfaceMessage) async {
-    final List<String> parts = interfaceMessage.message.split('|');
+  void _handleWebMessage(String message) async {
+    final List<String> parts = message.split('|');
     switch (parts[0]) {
       case 'login':
         if (parts.length > 1) {
           await _loginTokenStore.save(parts[1]);
         }
-        final notificationToken = await _messaging.getToken();
+        /*final notificationToken = await _messaging.getToken();
         if (notificationToken != null) {
-          _controller.runJavaScript("updateNotificationToken?.('$notificationToken')");
-        }
+          _controller?.evaluateJavascript(source: "updateNotificationToken?.('$notificationToken')");
+        }*/
       case 'authentication':
         final loginToken = await _loginTokenStore.read(true);
         if (loginToken != null) {
-          _controller.runJavaScript("handleLoginToken?.('$loginToken')");
+          _controller?.evaluateJavascript(source: "handleLoginToken?.('$loginToken')");
         }
       case 'authenticated':
         if (!_authenticated.isCompleted) _authenticated.complete();
@@ -302,7 +217,7 @@ class _MainScreenState extends State<MainScreen> {
         final url = parts[1];
         await _loginTokenStore.delete();
         await _preferences.setString(_urlKey, url);
-        await _controller.loadRequest(Uri.parse(url));
+        await _loadUrl(Uri.parse(url));
     }
   }
 
@@ -314,9 +229,13 @@ class _MainScreenState extends State<MainScreen> {
     return currentUri.path == '/' || currentUri.path == '/login';
   }
 
+  Future<void> _loadUrl(Uri uri) async {
+    await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(uri.toString())));
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!_initialized.isCompleted) {
+    if (!_settingsReady) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_loadingError != null) {
@@ -326,19 +245,20 @@ class _MainScreenState extends State<MainScreen> {
         onUrlSubmitted: (url) async {
           await _loginTokenStore.delete();
           await _preferences.setString(_urlKey, url);
-          await _controller.loadRequest(Uri.parse(url));
+          await _loadUrl(Uri.parse(url));
           setState(() { _loadingError = null; });
         },
       );
     }
+    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _controller.currentUrl().then((url) {
-          _controller.canGoBack().then((canGoBack) {
-            if (canGoBack && !_isRootOrLogin(_getUrl(), url)) {
-              _controller.goBack();
+        _controller?.getUrl().then((url) {
+          _controller?.canGoBack().then((canGoBack) {
+            if (canGoBack == true && !_isRootOrLogin(_getUrl(), url?.toString())) {
+              _controller?.goBack();
             } else {
               SystemNavigator.pop();
             }
@@ -349,7 +269,139 @@ class _MainScreenState extends State<MainScreen> {
         resizeToAvoidBottomInset: false,
         body: SafeArea(
           maintainBottomViewPadding: true,
-          child: WebViewWidget(controller: _controller),
+          child: InAppWebView(
+            initialUrlRequest: URLRequest(url: WebUri(_initialUrl!)),
+            initialSettings: InAppWebViewSettings(
+              javaScriptEnabled: true,
+              useShouldOverrideUrlLoading: true,
+              underPageBackgroundColor:
+                  brightness == Brightness.dark
+                      ? const Color(0xFF000000)
+                      : const Color(0xFFFFFFFF),
+            ),
+            initialUserScripts: UnmodifiableListView<UserScript>([
+              UserScript(
+                source: '''
+                  window.appInterface = {
+                    postMessage: function(message) {
+                      if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+                        window.flutter_inappwebview.callHandler('appInterface', message);
+                      } else {
+                        window.__traccarMessageQueue = window.__traccarMessageQueue || [];
+                        window.__traccarMessageQueue.push(message);
+                      }
+                    }
+                  };
+                  const excelType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                  const originalCreateObjectURL = URL.createObjectURL;
+                  URL.createObjectURL = function(object) {
+                    if (object instanceof Blob && object.type === excelType) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        window.appInterface.postMessage('download|' + reader.result.split(',')[1]);
+                      };
+                      reader.readAsDataURL(object);
+                    }
+                    return originalCreateObjectURL.apply(this, arguments);
+                  };
+                  window.addEventListener('flutterInAppWebViewPlatformReady', function() {
+                    if (window.__traccarMessageQueue && window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+                      window.__traccarMessageQueue.forEach(function(message) {
+                        window.flutter_inappwebview.callHandler('appInterface', message);
+                      });
+                      window.__traccarMessageQueue = [];
+                    }
+                  });
+                ''',
+                injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+              ),
+            ]),
+            onWebViewCreated: (controller) {
+              _controller = controller;
+              controller.addJavaScriptHandler(
+                handlerName: 'appInterface',
+                callback: (args) {
+                  if (args.isEmpty) return null;
+                  _handleWebMessage(args.first.toString());
+                  return null;
+                },
+              );
+              _controllerReady = true;
+              _maybeCompleteInitialized();
+            },
+            onLoadStart: (controller, url) {
+              setState(() => _loadingError = null);
+            },
+            shouldOverrideUrlLoading: (controller, navigationAction) async {
+              final target = navigationAction.request.url;
+              if (target == null) {
+                return NavigationActionPolicy.ALLOW;
+              }
+              final uri = Uri.parse(target.toString());
+              if (['response_type', 'client_id', 'redirect_uri', 'scope'].every(uri.queryParameters.containsKey)) {
+                _launchAuthorizeRequest(uri);
+                return NavigationActionPolicy.CANCEL;
+              }
+              if (uri.authority != Uri.parse(_getUrl()).authority) {
+                try {
+                  launchUrl(uri, mode: LaunchMode.externalApplication);
+                } catch (e) {
+                  developer.log('Failed to launch url', error: e);
+                }
+                return NavigationActionPolicy.CANCEL;
+              }
+              if (_isDownloadable(uri)) {
+                _downloadFile(uri);
+                return NavigationActionPolicy.CANCEL;
+              }
+              return NavigationActionPolicy.ALLOW;
+            },
+            onReceivedError: (controller, request, error) {
+              if (request.isForMainFrame == true) {
+                if (error.type == WebResourceErrorType.CANCELLED) {
+                  return;
+                }
+                final errorMessage = error.description.isNotEmpty
+                  ? error.description
+                  : error.type.toString();
+                setState(() => _loadingError = errorMessage);
+              }
+            },
+            onRenderProcessGone: (controller, detail) async {
+              await controller.reload();
+            },
+            onWebContentProcessDidTerminate: (controller) {
+              controller.reload();
+            },
+            onGeolocationPermissionsShowPrompt: (controller, origin) async {
+              final status = await Permission.location.request();
+              return GeolocationPermissionShowPromptResponse(
+                origin: origin,
+                allow: status.isGranted,
+                retain: true,
+              );
+            },
+            onPermissionRequest: (controller, request) async {
+              var allGranted = true;
+              for (final resource in request.resources) {
+                PermissionStatus status;
+                final resourceUpper = resource.toString().toUpperCase();
+                if (resourceUpper.contains('VIDEO_CAPTURE') || resourceUpper.contains('CAMERA')) {
+                  status = await Permission.camera.request();
+                } else {
+                  allGranted = false;
+                  continue;
+                }
+                if (!status.isGranted) allGranted = false;
+              }
+              return PermissionResponse(
+                resources: request.resources,
+                action: allGranted
+                  ? PermissionResponseAction.GRANT
+                  : PermissionResponseAction.DENY,
+              );
+            },
+          ),
         ),
       ),
     );
