@@ -5,6 +5,4 @@ Found issues:
 - Error screen change URL is not working
 - Android token login after force stop
 - iOS camera permission is not requested
-
-TODO:
-- Test oauth
+- Failed auth gets stuck on iOS
