@@ -258,7 +258,6 @@ class _MainScreenState extends State<MainScreen> {
         },
       );
     }
-    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -283,10 +282,6 @@ class _MainScreenState extends State<MainScreen> {
             initialSettings: InAppWebViewSettings(
               javaScriptEnabled: true,
               useShouldOverrideUrlLoading: true,
-              underPageBackgroundColor:
-                  brightness == Brightness.dark
-                      ? const Color(0xFF000000)
-                      : const Color(0xFFFFFFFF),
             ),
             initialUserScripts: UnmodifiableListView<UserScript>([
               UserScript(
