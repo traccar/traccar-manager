@@ -194,9 +194,13 @@ class _MainScreenState extends State<MainScreen> {
         if (parts.length > 1) {
           await _loginTokenStore.save(parts[1]);
         }
-        final notificationToken = await _messaging.getToken();
-        if (notificationToken != null) {
-          _controller?.evaluateJavascript(source: "updateNotificationToken?.('$notificationToken')");
+        try {
+          final notificationToken = await _messaging.getToken();
+          if (notificationToken != null) {
+            _controller?.evaluateJavascript(source: "updateNotificationToken?.('$notificationToken')");
+          }
+        } catch (e) {
+          developer.log('Failed to get notification token', error: e);
         }
       case 'authentication':
         final loginToken = await _loginTokenStore.read(true);
