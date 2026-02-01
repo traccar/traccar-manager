@@ -40,7 +40,7 @@ class _MainScreenState extends State<MainScreen> {
   final _messaging = FirebaseMessaging.instance;
   InAppWebViewController? _controller;
   String? _loadingError;
-  String? _initialUrl;
+  late String _initialUrl;
   bool _settingsReady = false;
   bool _controllerReady = false;
 
@@ -245,8 +245,12 @@ class _MainScreenState extends State<MainScreen> {
         onUrlSubmitted: (url) async {
           await _loginTokenStore.delete();
           await _preferences.setString(_urlKey, url);
-          await _loadUrl(Uri.parse(url));
-          setState(() { _loadingError = null; });
+          setState(() {
+            _initialUrl = url;
+            _loadingError = null;
+            _controller = null;
+            _controllerReady = false;
+          });
         },
       );
     }
@@ -270,7 +274,8 @@ class _MainScreenState extends State<MainScreen> {
         body: SafeArea(
           maintainBottomViewPadding: true,
           child: InAppWebView(
-            initialUrlRequest: URLRequest(url: WebUri(_initialUrl!)),
+            key: ValueKey(_initialUrl),
+            initialUrlRequest: URLRequest(url: WebUri(_initialUrl)),
             initialSettings: InAppWebViewSettings(
               javaScriptEnabled: true,
               useShouldOverrideUrlLoading: true,
