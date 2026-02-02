@@ -362,7 +362,9 @@ class _MainScreenState extends State<MainScreen> {
             },
             onReceivedError: (controller, request, error) {
               if (request.isForMainFrame == true) {
-                if (error.type == WebResourceErrorType.CANCELLED) {
+                final isInterruptedFrameLoad = Platform.isIOS &&
+                    error.description.toLowerCase().contains('frame load interrupted');
+                if (error.type == WebResourceErrorType.CANCELLED || isInterruptedFrameLoad) {
                   return;
                 }
                 final errorMessage = error.description.isNotEmpty
