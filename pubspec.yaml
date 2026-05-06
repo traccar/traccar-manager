@@ -15,7 +15,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_inappwebview: ^6.1.4
-  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage: ^10.1.0
   http: ^1.6.0
   local_auth: ^3.0.1
   path_provider: ^2.1.5
