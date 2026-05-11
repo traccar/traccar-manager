@@ -59,14 +59,16 @@ class _MainScreenState extends State<MainScreen> {
       if (uri.scheme == 'org.traccar.manager') {
         final baseUri = Uri.parse(_getUrl());
         final appPathSegments = [uri.host, ...uri.pathSegments];
-        final updatedQueryParameters = Map<String, String>.from(uri.queryParameters)
-          ..['redirect_uri'] = uri.toString().split('?').first;
+        final updatedQueryParameters = Map<String, String>.from(uri.queryParameters);
+        if (uri.queryParameters.containsKey('code')) {
+          updatedQueryParameters['redirect_uri'] = uri.toString().split('?').first;
+        }
         final updatedUri = uri.replace(
           scheme: baseUri.scheme,
           host: baseUri.host,
           port: baseUri.port,
           path: '/${appPathSegments.join('/')}',
-          queryParameters: updatedQueryParameters,
+          queryParameters: updatedQueryParameters.isEmpty ? null : updatedQueryParameters,
         );
         _loadUrl(updatedUri);
       } else {
