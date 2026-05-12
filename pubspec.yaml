@@ -11,7 +11,7 @@ dependencies:
   firebase_analytics: ^12.3.0
   firebase_core: ^4.7.0
   firebase_crashlytics: ^5.2.0
-  firebase_messaging: ^16.2.0
+  firebase_messaging: ^16.2.1
   flutter:
     sdk: flutter
   flutter_inappwebview: ^6.1.4
