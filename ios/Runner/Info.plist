@@ -44,6 +44,8 @@
 	<string>Camera is required to scan QR codes.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID is required to securely store login token.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Location is required to show your current location on the map.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location is required to show your current location on the map.</string>
 	<key>UIApplicationSceneManifest</key>
