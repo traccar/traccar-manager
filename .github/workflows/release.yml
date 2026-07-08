@@ -189,6 +189,9 @@ jobs:
 
       - name: Upload dSYMs to Crashlytics
         run: |
+          pwd
+          ls -la ios/Pods/FirebaseCrashlytics/ || echo "DIR MISSING"
+          file ios/Pods/FirebaseCrashlytics/upload-symbols || echo "FILE MISSING"
           ios/Pods/FirebaseCrashlytics/upload-symbols \
             -gsp ios/Runner/GoogleService-Info.plist \
             -p ios \
