@@ -24,7 +24,7 @@ class _ErrorScreenState extends State<ErrorScreen> {
     final text = _controller.text.trim();
     final uri = Uri.tryParse(text);
     final valid = text.isNotEmpty && uri != null && uri.isAbsolute &&
-      (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+      (uri.scheme == 'http' || uri.scheme == 'https');
     if (valid) {
       widget.onUrlSubmitted(text);
     } else {
