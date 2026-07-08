@@ -190,9 +190,13 @@ jobs:
       - name: Upload dSYMs to Crashlytics
         run: |
           pwd
-          ls -la ios/Pods/FirebaseCrashlytics/ || echo "DIR MISSING"
-          file ios/Pods/FirebaseCrashlytics/upload-symbols || echo "FILE MISSING"
-          ios/Pods/FirebaseCrashlytics/upload-symbols \
+          echo "--- ls ios/ ---"; ls -la ios/ | head -40
+          echo "--- ls ios/Pods/ ---"; ls ios/Pods/ 2>&1 | head -80
+          echo "--- find Pods dirs ---"; find . -type d -name Pods 2>/dev/null
+          echo "--- find upload-symbols ---"; find . -name upload-symbols -type f 2>/dev/null
+          UPLOAD=$(find . -name upload-symbols -type f 2>/dev/null | head -1)
+          echo "--- using: $UPLOAD ---"
+          "$UPLOAD" \
             -gsp ios/Runner/GoogleService-Info.plist \
             -p ios \
             "$RUNNER_TEMP/Runner.xcarchive/dSYMs"
