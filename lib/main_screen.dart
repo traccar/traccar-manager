@@ -176,7 +176,11 @@ class _MainScreenState extends State<MainScreen> {
         _loadUrl(Uri.parse('${_getUrl()}/event/$eventId'));
       }
     });
-    await _messaging.requestPermission();
+    try {
+      await _messaging.requestPermission();
+    } catch (e) {
+      developer.log('Failed to request notification permission', error: e);
+    }
     await _authenticated.future.timeout(const Duration(seconds: 30), onTimeout: () {});
     _messaging.onTokenRefresh.listen((newToken) {
       _controller?.evaluateJavascript(source: "updateNotificationToken?.('$newToken')");
