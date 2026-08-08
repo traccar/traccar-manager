@@ -7,23 +7,23 @@ environment:
   sdk: ^3.7.2
 
 dependencies:
-  app_links: ^7.0.0
-  firebase_analytics: ^12.4.1
-  firebase_core: ^4.9.0
-  firebase_crashlytics: ^5.2.2
-  firebase_messaging: ^16.2.2
+  app_links: ^7.2.1
+  firebase_analytics: ^12.4.6
+  firebase_core: ^4.13.0
+  firebase_crashlytics: ^5.2.7
+  firebase_messaging: ^16.5.0
   flutter:
     sdk: flutter
-  flutter_inappwebview: ^6.1.4
-  flutter_secure_storage: ^10.2.0
+  flutter_inappwebview: ^6.1.5
+  flutter_secure_storage: ^11.0.0
   http: ^1.6.0
-  local_auth: ^3.0.1
-  path_provider: ^2.1.5
+  local_auth: ^3.0.2
+  path_provider: ^2.1.6
   permission_handler: ^13.0.0
-  rate_my_app: ^2.4.0
-  share_plus: ^13.1.0
+  rate_my_app: ^2.4.1
+  share_plus: ^13.3.0
   shared_preferences: ^2.5.5
-  shared_preferences_android: ^2.4.23
+  shared_preferences_android: ^2.4.27
   url_launcher: ^6.3.2
 
 dev_dependencies:
