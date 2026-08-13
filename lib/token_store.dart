@@ -27,7 +27,7 @@ class TokenStore {
         localizedReason: 'Authenticate to access login token',
       );
       if (authenticated) {
-        return _storage.read(key: _tokenKey);
+        return await _storage.read(key: _tokenKey);
       }
     } on LocalAuthException catch (e) {
       developer.log('Failed to read token.', error: e);
