@@ -19,10 +19,10 @@ class TokenStore {
   }
 
   Future<String?> read(bool authenticate) async {
-    if (!await _storage.containsKey(key: _tokenKey)) {
-      return null;
-    }
     try {
+      if (!await _storage.containsKey(key: _tokenKey)) {
+        return null;
+      }
       final bool authenticated = !authenticate || await _auth.authenticate(
         localizedReason: 'Authenticate to access login token',
       );
