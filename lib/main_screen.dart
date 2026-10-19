@@ -170,6 +170,9 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _initNotifications() async {
     await _initialized.future;
+    _messaging.onRegistered.listen((installationId) {
+      _controller?.evaluateJavascript(source: "window.updateNotificationToken?.('$installationId')");
+    });
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       final eventId = message.data['eventId'];
       if (eventId != null) {
@@ -182,9 +185,6 @@ class _MainScreenState extends State<MainScreen> {
       developer.log('Failed to request notification permission', error: e);
     }
     await _authenticated.future.timeout(const Duration(seconds: 30), onTimeout: () {});
-    _messaging.onTokenRefresh.listen((newToken) {
-      _controller?.evaluateJavascript(source: "updateNotificationToken?.('$newToken')");
-    });
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification != null) {
@@ -202,12 +202,9 @@ class _MainScreenState extends State<MainScreen> {
           await _loginTokenStore.save(parts[1]);
         }
         try {
-          final notificationToken = await _messaging.getToken();
-          if (notificationToken != null) {
-            _controller?.evaluateJavascript(source: "updateNotificationToken?.('$notificationToken')");
-          }
+          await _messaging.register();
         } catch (e) {
-          developer.log('Failed to get notification token', error: e);
+          developer.log('Failed to register for notifications', error: e);
         }
       case 'authentication':
         final loginToken = await _loginTokenStore.read(true);

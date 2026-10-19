@@ -8,10 +8,10 @@ environment:
 
 dependencies:
   app_links: ^7.2.1
-  firebase_analytics: ^12.6.0
-  firebase_core: ^4.15.0
-  firebase_crashlytics: ^5.4.0
-  firebase_messaging: ^16.7.0
+  firebase_analytics: ^13.0.0
+  firebase_core: ^5.0.0
+  firebase_crashlytics: ^6.0.0
+  firebase_messaging: ^17.0.0
   flutter:
     sdk: flutter
   flutter_inappwebview: ^6.2.0-beta.3
