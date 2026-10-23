@@ -201,11 +201,6 @@ class _MainScreenState extends State<MainScreen> {
         if (parts.length > 1) {
           await _loginTokenStore.save(parts[1]);
         }
-        try {
-          await _messaging.register();
-        } catch (e) {
-          developer.log('Failed to register for notifications', error: e);
-        }
       case 'authentication':
         final loginToken = await _loginTokenStore.read(true);
         if (loginToken != null) {
@@ -213,6 +208,11 @@ class _MainScreenState extends State<MainScreen> {
         }
       case 'authenticated':
         if (!_authenticated.isCompleted) _authenticated.complete();
+        try {
+          await _messaging.register();
+        } catch (e) {
+          developer.log('Failed to register for notifications', error: e);
+        }
       case 'logout':
         await _loginTokenStore.delete();
       case 'download':
