@@ -236,10 +236,14 @@ class _MainScreenState extends State<MainScreen> {
 
   bool _isRootOrLogin(String baseUrl, String? currentUrl) {
     if (currentUrl == null) return false;
-    final baseUri = Uri.parse(baseUrl);
-    final currentUri = Uri.parse(currentUrl);
-    if (baseUri.origin != currentUri.origin) return false;
-    return currentUri.path == '/' || currentUri.path == '/login';
+    try {
+      final baseUri = Uri.parse(baseUrl);
+      final currentUri = Uri.parse(currentUrl);
+      if (baseUri.origin != currentUri.origin) return false;
+      return currentUri.path == '/' || currentUri.path == '/login';
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _loadUrl(Uri uri) async {
