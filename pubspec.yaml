@@ -23,7 +23,7 @@ dependencies:
   rate_my_app: ^2.4.2
   share_plus: ^13.3.1
   shared_preferences: ^2.5.5
-  shared_preferences_android: 2.4.28
+  shared_preferences_android: ^2.5.3
   url_launcher: ^6.3.3
 
 dev_dependencies:
